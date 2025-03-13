@@ -37,7 +37,7 @@ cd auth-microservice
 ```
 
 ### 2️⃣ Setup Environment Variables
-Create a `.env` file and configure:
+Create a `.application.properties` file and configure:
 ```env
 DB_URL=jdbc:postgresql://localhost:5432/auth_db
 REDIS_HOST=localhost
@@ -49,10 +49,6 @@ JWT_SECRET=your_super_secret_key
 #### Using Maven
 ```sh
 ./mvnw spring-boot:run
-```
-#### Using Docker
-```sh
-docker-compose up --build
 ```
 
 ---
