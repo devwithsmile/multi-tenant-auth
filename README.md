@@ -70,7 +70,7 @@ docker-compose up --build
 
 
 ## 📢 Support & Contact
-For issues and suggestions, open a GitHub Issue or reach out via email: **support@yourdomain.com** 💬
+For issues and suggestions, open a GitHub Issue or reach out via email: **devsaini7970@gmail.com** 💬
 
 Give a ⭐ if you like this project! 😃
 
