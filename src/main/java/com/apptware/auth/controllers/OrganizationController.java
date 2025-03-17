@@ -6,6 +6,8 @@ import com.apptware.auth.dto.organization.OrganizationSummaryDTO;
 import com.apptware.auth.models.Organization;
 import com.apptware.auth.services.OrganizationService;
 import jakarta.validation.Valid;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +18,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/organizations")
 @RequiredArgsConstructor
-@SuppressWarnings("unchecked")
+
 public class OrganizationController {
     private final OrganizationService organizationService;
 
@@ -30,20 +32,20 @@ public class OrganizationController {
     public ResponseEntity<OrganizationResponseDTO> getOrganizationById(@PathVariable Long id) {
         return organizationService.findById(id)
                 .map(org -> ResponseEntity.ok(OrganizationResponseDTO.fromEntity(org)))
-                .orElse(ResponseEntity.<OrganizationResponseDTO>notFound().build());
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/name/{name}")
     public ResponseEntity<OrganizationResponseDTO> getOrganizationByName(@PathVariable String name) {
         return organizationService.findByName(name)
                 .map(org -> ResponseEntity.ok(OrganizationResponseDTO.fromEntity(org)))
-                .orElse(ResponseEntity.<OrganizationResponseDTO>notFound().build());
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
     public ResponseEntity<OrganizationResponseDTO> createOrganization(@Valid @RequestBody OrganizationRequestDTO requestDTO) {
         if (organizationService.existsByName(requestDTO.getName())) {
-            return ResponseEntity.<OrganizationResponseDTO>status(HttpStatus.CONFLICT).build();
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
         Organization organization = requestDTO.toEntity();
         Organization savedOrganization = organizationService.save(organization);
@@ -80,5 +82,11 @@ public class OrganizationController {
         }
         organizationService.deleteById(id);
         return ResponseEntity.ok().build();
+    }
+    
+    @Data
+    @AllArgsConstructor
+    static class ErrorResponse {
+        private String message;
     }
 }

@@ -1,5 +1,8 @@
 package com.apptware.auth.controllers;
 
+import com.apptware.auth.dto.role.RoleRequestDTO;
+import com.apptware.auth.dto.role.RoleResponseDTO;
+import com.apptware.auth.dto.role.RoleSummaryDTO;
 import com.apptware.auth.models.Organization;
 import com.apptware.auth.models.Role;
 import com.apptware.auth.services.OrganizationService;
@@ -8,108 +11,120 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/roles")
 @RequiredArgsConstructor
-@SuppressWarnings("unchecked")
+
 public class RoleController {
     private final RoleService roleService;
     private final OrganizationService organizationService;
 
     @GetMapping
-    public List<Role> getAllRoles() {
-        return roleService.findAll();
+    public List<RoleSummaryDTO> getAllRoles() {
+        List<Role> roles = roleService.findAll();
+        return RoleSummaryDTO.fromEntityList(roles);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Role> getRoleById(@PathVariable Long id) {
+    public ResponseEntity<RoleResponseDTO> getRoleById(@PathVariable Long id) {
         return roleService.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.<Role>notFound().build());
+                .map(role -> ResponseEntity.ok(RoleResponseDTO.fromEntity(role)))
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/organization/{orgId}")
-    public ResponseEntity<List<Role>> getRolesByOrganization(@PathVariable Long orgId) {
+    public ResponseEntity<List<RoleSummaryDTO>> getRolesByOrganization(@PathVariable Long orgId) {
         return organizationService.findById(orgId)
                 .map(organization -> {
                     List<Role> roles = roleService.findByOrganization(organization);
-                    return ResponseEntity.ok(roles);
+                    return ResponseEntity.ok(RoleSummaryDTO.fromEntityList(roles));
                 })
-                .orElse(ResponseEntity.<List<Role>>notFound().build());
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/organization/{orgId}/name/{name}")
-    public ResponseEntity<Role> getRoleByNameAndOrganization(
+    public ResponseEntity<RoleResponseDTO> getRoleByNameAndOrganization(
             @PathVariable Long orgId,
             @PathVariable String name) {
         return organizationService.findById(orgId)
                 .map(organization -> roleService.findByNameAndOrganization(name, organization)
-                        .map(ResponseEntity::ok)
-                        .orElse(ResponseEntity.<Role>notFound().build()))
-                .orElse(ResponseEntity.<Role>notFound().build());
+                        .map(role -> ResponseEntity.ok(RoleResponseDTO.fromEntity(role)))
+                        .orElse(ResponseEntity.notFound().build()))
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<Role> createRole(@RequestBody Role role) {
-        // Validate organization if provided
-        if (role.getOrganization() == null || role.getOrganization().getId() == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+    public ResponseEntity<?> createRole(@RequestBody RoleRequestDTO roleRequestDTO) {
+        // Validate organization ID
+        Long orgId = roleRequestDTO.getOrganizationId();
+        if (orgId == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse("Organization ID is required"));
         }
         
-        Long orgId = role.getOrganization().getId();
+        // Check if organization exists
         java.util.Optional<Organization> orgOptional = organizationService.findById(orgId);
-        if (!orgOptional.isPresent()) {
-            return ResponseEntity.notFound().build();
+        if (orgOptional.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("Organization not found"));
         }
         
         Organization organization = orgOptional.get();
-        if (roleService.existsByNameAndOrganization(role.getName(), organization)) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        
+        // Check for duplicate role name in the same organization
+        if (roleService.existsByNameAndOrganization(roleRequestDTO.getName(), organization)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("Role with this name already exists in the organization"));
         }
         
-        role.setOrganization(organization); // Ensure we have the full organization object
+        // Create the role
+        Role role = roleRequestDTO.toEntity();
+        role.setOrganization(organization);
         Role savedRole = roleService.save(role);
-        return ResponseEntity.status(HttpStatus.CREATED).body(savedRole);
+        
+        return ResponseEntity.status(HttpStatus.CREATED).body(RoleResponseDTO.fromEntity(savedRole));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Role> updateRole(
+    public ResponseEntity<?> updateRole(
             @PathVariable Long id,
-            @RequestBody Role role) {
+            @RequestBody RoleRequestDTO roleRequestDTO) {
         // Check if role exists
         java.util.Optional<Role> roleOptional = roleService.findById(id);
-        if (!roleOptional.isPresent()) {
+        if (roleOptional.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
         
         Role existingRole = roleOptional.get();
         
-        // Validate organization
-        if (role.getOrganization() == null || role.getOrganization().getId() == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        // Validate organization ID
+        Long orgId = roleRequestDTO.getOrganizationId();
+        if (orgId == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse("Organization ID is required"));
         }
         
-        Long orgId = role.getOrganization().getId();
+        // Check if organization exists
         java.util.Optional<Organization> orgOptional = organizationService.findById(orgId);
-        if (!orgOptional.isPresent()) {
-            return ResponseEntity.notFound().build();
+        if (orgOptional.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("Organization not found"));
         }
         
         Organization organization = orgOptional.get();
         
         // Check if name is being changed and if it conflicts
-        if (!existingRole.getName().equals(role.getName()) 
-                && roleService.existsByNameAndOrganization(role.getName(), organization)) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        if (!existingRole.getName().equals(roleRequestDTO.getName()) 
+                && roleService.existsByNameAndOrganization(roleRequestDTO.getName(), organization)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("Role with this name already exists in the organization"));
         }
         
-        role.setId(id);
-        role.setOrganization(organization); // Ensure we have the full organization object
-        Role updatedRole = roleService.save(role);
-        return ResponseEntity.ok(updatedRole);
+        // Update the role
+        roleRequestDTO.updateEntity(existingRole);
+        existingRole.setOrganization(organization);
+        Role updatedRole = roleService.save(existingRole);
+        
+        return ResponseEntity.ok(RoleResponseDTO.fromEntity(updatedRole));
     }
 
     @DeleteMapping("/{id}")
@@ -119,5 +134,11 @@ public class RoleController {
         }
         roleService.deleteById(id);
         return ResponseEntity.ok().build();
+    }
+    
+    @Data
+    @AllArgsConstructor
+    static class ErrorResponse {
+        private String message;
     }
 }

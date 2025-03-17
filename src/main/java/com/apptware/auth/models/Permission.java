@@ -2,9 +2,8 @@ package com.apptware.auth.models;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "permissions")
@@ -115,6 +114,100 @@ public class Permission {
     private void generateName() {
         if (action != null && resourcesStr != null && !resourcesStr.isEmpty()) {
             this.name = action + "-" + resourcesStr;
+        }
+    }
+    
+    /**
+     * Utility methods for managing permission assignments
+     */
+    
+    /**
+     * Assigns this permission to a user
+     * @param user The user to assign the permission to
+     */
+    public void assignToUser(User user) {
+        if (users == null) {
+            users = new HashSet<>();
+        }
+        users.add(user);
+        
+        if (user.getPermissions() == null) {
+            user.setPermissions(new HashSet<>());
+        }
+        user.getPermissions().add(this);
+    }
+
+    /**
+     * Removes this permission from a user
+     * @param user The user to remove the permission from
+     */
+    public void removeFromUser(User user) {
+        if (users != null) {
+            users.remove(user);
+        }
+        
+        if (user.getPermissions() != null) {
+            user.getPermissions().remove(this);
+        }
+    }
+
+    /**
+     * Assigns this permission to a role
+     * @param role The role to assign the permission to
+     */
+    public void assignToRole(Role role) {
+        if (roles == null) {
+            roles = new HashSet<>();
+        }
+        roles.add(role);
+        
+        if (role.getPermissions() == null) {
+            role.setPermissions(new HashSet<>());
+        }
+        role.getPermissions().add(this);
+    }
+
+    /**
+     * Removes this permission from a role
+     * @param role The role to remove the permission from
+     */
+    public void removeFromRole(Role role) {
+        if (roles != null) {
+            roles.remove(role);
+        }
+        
+        if (role.getPermissions() != null) {
+            role.getPermissions().remove(this);
+        }
+    }
+
+    /**
+     * Assigns this permission to a group
+     * @param group The group to assign the permission to
+     */
+    public void assignToGroup(Group group) {
+        if (groups == null) {
+            groups = new HashSet<>();
+        }
+        groups.add(group);
+        
+        if (group.getPermissions() == null) {
+            group.setPermissions(new HashSet<>());
+        }
+        group.getPermissions().add(this);
+    }
+
+    /**
+     * Removes this permission from a group
+     * @param group The group to remove the permission from
+     */
+    public void removeFromGroup(Group group) {
+        if (groups != null) {
+            groups.remove(group);
+        }
+        
+        if (group.getPermissions() != null) {
+            group.getPermissions().remove(this);
         }
     }
     

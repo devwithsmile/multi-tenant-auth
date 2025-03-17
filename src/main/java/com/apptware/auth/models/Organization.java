@@ -3,6 +3,7 @@ package com.apptware.auth.models;
 
 import jakarta.persistence.*;
 import lombok.*;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import java.time.LocalDateTime;
 import java.util.Set;
 
@@ -28,6 +29,7 @@ public class Organization {
 
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
+    @JsonManagedReference
     @OneToMany(mappedBy = "organization", cascade = CascadeType.ALL)
     private Set<User> users;
 

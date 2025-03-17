@@ -1,7 +1,5 @@
 package com.apptware.auth.dto.user;
 
-import com.apptware.auth.dto.organization.OrganizationSummaryDTO;
-import com.apptware.auth.models.Organization;
 import com.apptware.auth.models.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,13 +9,17 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * A simplified User DTO without organization details
+ * Used for cases where organization context is already known
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserResponseDTO {
+public class UserBriefDTO {
     private Long id;
-    private OrganizationSummaryDTO organization;
+    private String name;
     private String email;
     private boolean isAdmin;
     private int tokenVersion;
@@ -25,20 +27,13 @@ public class UserResponseDTO {
     private int rolesCount;
     private int groupsCount;
     
-    public static UserResponseDTO fromEntity(User user) {
-        OrganizationSummaryDTO orgDto = null;
-        if (user.getOrganization() != null) {
-            Organization org = user.getOrganization();
-            orgDto = OrganizationSummaryDTO.builder()
-                    .id(org.getId())
-                    .name(org.getName())
-                    .contactEmail(org.getContactEmail())
-                    .build();
-        }
-        
-        return UserResponseDTO.builder()
+    /**
+     * Convert a User entity to this DTO
+     */
+    public static UserBriefDTO fromEntity(User user) {
+        return UserBriefDTO.builder()
                 .id(user.getId())
-                .organization(orgDto)
+                .name(user.getName())
                 .email(user.getEmail())
                 .isAdmin(user.isAdmin())
                 .tokenVersion(user.getTokenVersion() != null ? user.getTokenVersion() : 0)
@@ -48,9 +43,12 @@ public class UserResponseDTO {
                 .build();
     }
     
-    public static List<UserResponseDTO> fromEntityList(List<User> users) {
+    /**
+     * Convert a list of User entities to DTOs
+     */
+    public static List<UserBriefDTO> fromEntityList(List<User> users) {
         return users.stream()
-                .map(UserResponseDTO::fromEntity)
+                .map(UserBriefDTO::fromEntity)
                 .collect(Collectors.toList());
     }
 }
